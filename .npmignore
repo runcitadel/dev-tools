@@ -1,0 +1,6 @@
+src
+lib/tsconfig.tsbuildinfo
+.env
+.editorconfig
+.vscode
+tsconfig.json

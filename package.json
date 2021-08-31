@@ -1,0 +1,31 @@
+{
+  "name": "@runcitadel/dev-tools",
+  "description": "Tools used for making development of Citadel and Umbrel easier",
+  "version": "0.0.1",
+  "packageManager": "yarn@3.0.1",
+  "dependencies": {
+    "@octokit/rest": "^18.9.1",
+    "commander": "^8.1.0",
+    "dotenv": "^10.0.0",
+    "enquirer": "^2.3.6",
+    "marked": "^3.0.2",
+    "marked-terminal": "^4.1.1",
+    "node-fetch": "next",
+    "semver": "^7.3.5"
+  },
+  "devDependencies": {
+    "@types/marked": "^3.0.0",
+    "@types/marked-terminal": "^3.1.2",
+    "@types/node": "^16.7.5",
+    "@types/semver": "^7.3.8",
+    "typescript": "^4.4.2"
+  },
+  "scripts": {
+    "prepublish": "yarn build",
+    "build": "tsc"
+  },
+  "type": "module",
+  "bin": {
+    "citadel-dev": "./lib/cli.js"
+  }
+}
