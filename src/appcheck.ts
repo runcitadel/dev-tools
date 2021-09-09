@@ -74,6 +74,12 @@ async function checkCommits(
   });
   return appRepo.data.sha.substr(0, 7);
 }
+interface SimpleApp {
+  id: string;
+  name: string;
+  version: string;
+  repo: string;
+}
 
 interface App {
   id: string;
@@ -91,8 +97,7 @@ interface App {
   gallery: string[];
   path: string;
   defaultPassword: string;
-  versionCheck?: boolean;
-  useCommits?: boolean;
+  torOnly?: boolean;
 }
 
 interface VersionDiff {
@@ -113,20 +118,26 @@ export async function getAppUpgrades(
       }
     : {};
   let githubRepo: string;
+  let githubBranch: string;
+  let registryFile: string;
   switch (node) {
     case "Umbrel":
       githubRepo = "getumbrel/umbrel";
+      githubBranch = "master";
+      registryFile = "registry.json";
       break;
     case "Citadel":
     default:
       githubRepo = "runcitadel/compose-nonfree";
+      githubBranch = "main";
+      registryFile = "apps.json";
       break;
   }
 
   const octokit = new Octokit(octokitOptions);
-  const data: App[] = (await (
+  const data: App[] | SimpleApp[] = (await (
     await fetch(
-      `https://raw.githubusercontent.com/${githubRepo}/master/apps/registry.json`
+      `https://raw.githubusercontent.com/${githubRepo}/${githubBranch}/apps/${registryFile}`
     )
   ).json()) as App[];
 
@@ -134,15 +145,14 @@ export async function getAppUpgrades(
 
   for (const app of data) {
     console.info(`Checking app ${app.name}...`);
-    if (app.versionCheck === false || !app.repo.includes("github.com")) {
+    if (!app.repo.includes("github.com")) {
       console.info("Version checking is not supported/disabled for this app.");
       continue;
     }
         
     const {owner, repo} = getOwnerAndRepo(app.repo);
-    let tagName = "";
     const appVersion = app.version;
-    if (app.id === "lnbits" || app.useCommits) {
+    if (app.id === "lnbits") {
       const currentCommit = await checkCommits(app.repo, octokit);
       if (currentCommit !== app.version) {
         potentialUpdates.push({
@@ -234,6 +244,11 @@ export async function getAppUpgrades(
   return table;
 }
 
-export async function formatData(node: "Umbrel" | "Citadel" | undefined) {
-  return marked(await getAppUpgrades(node ? node : "Citadel"));
+export async function formatData(node: "Umbrel" | "Citadel" | undefined, formatMarkdown: boolean = true): Promise<string> {
+  const upgrades = await getAppUpgrades(node ? node : "Citadel");
+  if(formatMarkdown) {
+    return marked(upgrades);
+  } else {
+    return upgrades;
+  }
 }

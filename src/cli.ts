@@ -23,6 +23,7 @@ async function askForToken() {
 
 program
   .option("-t, --token <token>", "GitHub access token")
+  .option("-p, --plain", "Specify this if you don't want markdown output to be formatted")
   .option(
     "-n, --node <node>",
     "'Umbrel' or 'Citadel', depending on what public repo you want to check."
@@ -36,7 +37,7 @@ program
       program.opts().token
         ? (process.env.GITHUB_TOKEN = program.opts().token)
         : await askForToken();
-    console.log(await formatData(program.opts().node));
+    console.log(await formatData(program.opts().node, program.opts().plain));
   });
 
 program.parse(process.argv);
