@@ -244,11 +244,11 @@ export async function getAppUpgrades(
   return table;
 }
 
-export async function formatData(node: "Umbrel" | "Citadel" | undefined, formatMarkdown: boolean = true): Promise<string> {
+export async function formatData(node: "Umbrel" | "Citadel" | undefined, outputPlain: boolean = false): Promise<string> {
   const upgrades = await getAppUpgrades(node ? node : "Citadel");
-  if(formatMarkdown) {
-    return marked(upgrades);
-  } else {
+  if(outputPlain) {
     return upgrades;
+  } else {
+    return marked(upgrades);
   }
 }
