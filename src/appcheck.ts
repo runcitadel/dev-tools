@@ -184,7 +184,7 @@ export async function getAppUpgrades(
           app: app.name,
         });
       }
-    } else if (app.id === "home-assistant") {
+    } else if (app.id === "home-assistant" || app.id === "pi-hole") {
       const homeAssistantVersion = await checkHomeAssistant(octokit, owner, repo, app.version, app.name);
       if(homeAssistantVersion) {
         potentialUpdates.push(homeAssistantVersion);
