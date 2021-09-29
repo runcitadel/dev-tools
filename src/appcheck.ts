@@ -166,16 +166,16 @@ export async function getAppUpgrades(
         owner,
         repo,
       });
-      // Tags are in the format ${number}-${commit}
+      // Tags are just dates as number
       // First, sort the tags by their number
       const sortedTags = tagList.data.sort((a, b) => {
-        const aNum = parseInt(a.name.split("-")[0]);
-        const bNum = parseInt(b.name.split("-")[0]);
+        const aNum = parseInt(a.name);
+        const bNum = parseInt(b.name);
         return aNum - bNum;
       });
-      // Then, check if the highest number i higher than the number of the currently used version
+      // Then, check if the highest number is higher than the number of the currently used version
       const highestNum = parseInt(
-        sortedTags[sortedTags.length - 1].name.split("-")[0]
+        sortedTags[sortedTags.length - 1].name
       );
       if (highestNum > parseInt(appVersion)) {
         potentialUpdates.push({
