@@ -36,7 +36,7 @@ export default async function checkHomeAssistant(
         return aNum2 - bNum2;
       }
       const aNum3 = parseInt(a.name.split(".")[2] || "0");
-      const aNum3 = parseInt(a.name.split(".")[2] || "0");
+      const bNum3 = parseInt(b.name.split(".")[2] || "0");
       return aNum3 - bNum3;
     });
   // Then, check if the highest tag is higher than the currently used tag by again comparing the year, the month and release number
