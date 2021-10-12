@@ -27,7 +27,11 @@ program
   .option(
     "-n, --node <node>",
     "'Umbrel' or 'Citadel', depending on what public repo you want to check."
-  );
+  )
+  .option(
+    "-d --directory <node>",
+    "'When using Citadel, put the path of a local copy of Citadel here to automatically update."
+  );;
 
 program
   .command("appcheck")
@@ -37,7 +41,7 @@ program
       program.opts().token
         ? (process.env.GITHUB_TOKEN = program.opts().token)
         : await askForToken();
-    console.log(await formatData(program.opts().node, program.opts().plain));
+    console.log(await formatData(program.opts().node, program.opts().plain, program.opts().directory));
   });
 
 program.parse(process.argv);
