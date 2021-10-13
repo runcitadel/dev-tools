@@ -175,7 +175,7 @@ export async function updateContainer(container: Container, version: string): Pr
         await exec(`docker pull ${newImage}`);
     }
     const inspected = await exec(`docker image inspect ${newImage}`);
-    const digest = JSON.parse(inspected.stdout)[0].RepoDigests[0];
-    newContainer.image = `${newImage}@${digest}`;
+    const digest: string = JSON.parse(inspected.stdout)[0].RepoDigests[0];
+    newContainer.image = `${newImage}@${digest.split("@")[1]}`;
     return newContainer;
 }

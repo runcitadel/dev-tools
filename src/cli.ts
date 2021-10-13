@@ -30,7 +30,7 @@ program
   )
   .option(
     "-d --directory <node>",
-    "'When using Citadel, put the path of a local copy of Citadel here to automatically update."
+    "'When using Citadel, put the path of a local Citadel app directory here to automatically update."
   );;
 
 program

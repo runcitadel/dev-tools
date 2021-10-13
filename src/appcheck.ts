@@ -7,7 +7,7 @@ import checkHomeAssistant from "./special-apps/homeAssistant.js";
 import * as fs from "fs/promises";
 import { existsSync } from "fs";
 import * as path from "path";
-import YAML from "yaml";
+import YAML from "./yaml-tools.js";
 import { AppYmlV1, getMainContainer, updateContainer } from "./appYml.js";
 
 marked.setOptions({
@@ -145,7 +145,7 @@ export async function getAppUpgrades(
   let data: App[] | SimpleApp[] = [];
   if (directory)
     data = JSON.parse(
-      await fs.readFile(path.join(directory, "apps", registryFile), "utf8")
+      await fs.readFile(path.join(directory, registryFile), "utf8")
     ) as SimpleApp[];
   else
     data = (await (
@@ -258,25 +258,29 @@ export async function getAppUpgrades(
     return "No updates were found, everything seems up-to-date.";
   }
   if (directory) {
-    let appsDirectory = path.join(directory, "apps");
+    let appsDirectory = directory;
     for (let update of potentialUpdates) {
       const appDirectory = path.join(appsDirectory, update.id);
       if (!existsSync(appDirectory)) continue;
       const appYml = path.join(appDirectory, "app.yml");
       if (!existsSync(appYml)) continue;
-      const appYmlData = YAML.parse(await fs.readFile(appYml, "utf8")) as AppYmlV1;
-      if (appYmlData.version?.toString() !== "1")
-        continue;
+      const appYmlData = YAML.parse(
+        await fs.readFile(appYml, "utf8")
+      ) as YAML & { yaml: AppYmlV1 };
+      if (appYmlData.yaml.version?.toString() !== "1") continue;
       console.log(`Updating ${update.app}...`);
-      let mainContainer = getMainContainer(appYmlData);
-      let containerIndex = appYmlData.containers.indexOf(mainContainer);
+      let mainContainer = getMainContainer(appYmlData.yaml);
+      let containerIndex = appYmlData.yaml.containers.indexOf(mainContainer);
       try {
-        appYmlData.containers[containerIndex] = await updateContainer(mainContainer, update.current);
+        appYmlData.yaml.containers[containerIndex] = await updateContainer(
+          mainContainer,
+          update.current
+        );
       } catch (e) {
         console.error(e);
         continue;
       }
-      appYmlData.metadata.version = update.current;
+      appYmlData.yaml.metadata.version = update.current;
       // Now write the new app.yml
       await fs.writeFile(appYml, YAML.stringify(appYmlData));
       potentialUpdates.splice(potentialUpdates.indexOf(update), 1);
