@@ -1,18 +1,14 @@
 import fetch from "node-fetch";
 import semver from "semver";
 import { Octokit } from "@octokit/rest";
-import {marked} from "marked";
+import { marked } from "marked";
 import marked_terminal from "marked-terminal";
 import checkHomeAssistant from "./special-apps/homeAssistant.js";
 import * as fs from "fs/promises";
 import { existsSync } from "fs";
 import * as path from "path";
 import YAML from "./yaml-tools.js";
-import {
-  AppYmlV1,
-  getUpdateContainers,
-  updateContainer,
-} from "./appYml.js";
+import { AppYmlV1, getUpdateContainers, updateContainer } from "./appYml.js";
 
 marked.setOptions({
   renderer: new marked_terminal(),
@@ -275,20 +271,17 @@ export async function getAppUpgrades(
       console.log(`Updating ${update.app}...`);
       let updateAbleContainers = getUpdateContainers(appYmlData.yaml);
       let promises: Promise<void>[] = [];
-      updateAbleContainers.forEach((container) => {
-        promises.push(
-          (async () => {
-            let containerIndex = appYmlData.yaml.containers.indexOf(container);
-            try {
-              appYmlData.yaml.containers[containerIndex] =
-                await updateContainer(container, update.current);
-            } catch (e) {
-              console.error(e);
-            }
-          })()
-        );
-      });
-      await Promise.all(promises);
+      for (let container of updateAbleContainers) {
+        let containerIndex = appYmlData.yaml.containers.indexOf(container);
+        try {
+          appYmlData.yaml.containers[containerIndex] = await updateContainer(
+            container,
+            update.current
+          );
+        } catch (e) {
+          console.error(e);
+        }
+      }
       appYmlData.yaml.metadata.version = update.current;
       // Now write the new app.yml
       await fs.writeFile(appYml, YAML.stringify(appYmlData));
