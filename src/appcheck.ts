@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
 import semver from "semver";
 import { Octokit } from "@octokit/rest";
-import marked from "marked";
+import {marked} from "marked";
 import marked_terminal from "marked-terminal";
 import checkHomeAssistant from "./special-apps/homeAssistant.js";
 import * as fs from "fs/promises";
