@@ -270,7 +270,6 @@ export async function getAppUpgrades(
       if (appYmlData.yaml.version?.toString() !== "1") continue;
       console.log(`Updating ${update.app}...`);
       let updateAbleContainers = getUpdateContainers(appYmlData.yaml);
-      let promises: Promise<void>[] = [];
       for (let container of updateAbleContainers) {
         let containerIndex = appYmlData.yaml.containers.indexOf(container);
         try {
