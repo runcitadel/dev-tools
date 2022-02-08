@@ -8,7 +8,11 @@ import * as fs from "fs/promises";
 import { existsSync } from "fs";
 import * as path from "path";
 import YAML from "./yaml-tools.js";
-import { AppYmlV1, getMainContainer, updateContainer } from "./appYml.js";
+import {
+  AppYmlV1,
+  getUpdateContainers,
+  updateContainer,
+} from "./appYml.js";
 
 marked.setOptions({
   renderer: new marked_terminal(),
@@ -269,17 +273,22 @@ export async function getAppUpgrades(
       ) as YAML & { yaml: AppYmlV1 };
       if (appYmlData.yaml.version?.toString() !== "1") continue;
       console.log(`Updating ${update.app}...`);
-      let mainContainer = getMainContainer(appYmlData.yaml);
-      let containerIndex = appYmlData.yaml.containers.indexOf(mainContainer);
-      try {
-        appYmlData.yaml.containers[containerIndex] = await updateContainer(
-          mainContainer,
-          update.current
+      let updateAbleContainers = getUpdateContainers(appYmlData.yaml);
+      let promises: Promise<void>[] = [];
+      updateAbleContainers.forEach((container) => {
+        promises.push(
+          (async () => {
+            let containerIndex = appYmlData.yaml.containers.indexOf(container);
+            try {
+              appYmlData.yaml.containers[containerIndex] =
+                await updateContainer(container, update.current);
+            } catch (e) {
+              console.error(e);
+            }
+          })()
         );
-      } catch (e) {
-        console.error(e);
-        continue;
-      }
+      });
+      await Promise.all(promises);
       appYmlData.yaml.metadata.version = update.current;
       // Now write the new app.yml
       await fs.writeFile(appYml, YAML.stringify(appYmlData));
