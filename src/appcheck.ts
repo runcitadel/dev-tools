@@ -267,7 +267,7 @@ export async function getAppUpgrades(
       const appYmlData = YAML.parse(
         await fs.readFile(appYml, "utf8")
       ) as YAML & { yaml: AppYmlV1 };
-      if (appYmlData.yaml.version?.toString() !== "1") continue;
+      if (appYmlData.yaml.version?.toString() !== "1" && appYmlData.yaml.version?.toString() !== "2") continue;
       console.log(`Updating ${update.app}...`);
       let updateAbleContainers = getUpdateContainers(appYmlData.yaml);
       for (let container of updateAbleContainers) {
