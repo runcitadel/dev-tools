@@ -120,6 +120,7 @@ export async function getAppUpgrades(
   node: "Umbrel" | "Citadel",
   directory: undefined | string
 ): Promise<string> {
+  let failedApps: string[] = [];
   const octokitOptions = process.env.GITHUB_TOKEN
     ? {
         auth: process.env.GITHUB_TOKEN,
@@ -158,12 +159,17 @@ export async function getAppUpgrades(
 
   for (const app of data) {
     console.info(`Checking app ${app.name}...`);
-    if (!app.repo.includes("github.com")) {
+    if (!app.repo.startsWith("https://github.com/")) {
       console.info("Version checking is not supported/disabled for this app.");
+      failedApps.push(app.name);
       continue;
     }
-
     const { owner, repo } = getOwnerAndRepo(app.repo);
+    if(!repo || !owner) {
+      console.info("Version checking is not supported/disabled for this app.");
+      failedApps.push(app.name);
+      continue;
+    }
     const appVersion = app.version;
     if (app.id === "lnbits") {
       const currentCommit = await checkCommits(app.repo, octokit);
@@ -238,6 +244,10 @@ export async function getAppUpgrades(
             b.name.replace("v", "")
           );
         });
+      if(sortedTags.length == 0) {
+        failedApps.push(app.id);
+        continue;
+      }
       // Now compare the tag with the highest semver against the currently used version
       if (
         semver.gt(
@@ -291,6 +301,9 @@ export async function getAppUpgrades(
   table += "|-----|-----------------|----------------|\n";
   potentialUpdates.forEach((update) => {
     table += `| ${update.app} | ${update.current} | ${update.citadel} |\n`;
+  });
+  failedApps.forEach(app => {
+    table += `| ${app} |  Couldn't check | Couldn't check |`;
   });
   return table;
 }
