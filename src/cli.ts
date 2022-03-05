@@ -30,9 +30,23 @@ program
   )
   .option(
     "-d --directory <node>",
-    "'When using Citadel, put the path of a local Citadel app directory here to automatically update."
-  );;
-
+    "When using Citadel, put the path of a local Citadel app directory here to automatically update."
+  )
+  .option(
+    "--consumerkey <key>",
+    "To announce updates on Twitter"
+  )
+  .option(
+    "--consumersecret <secret>",
+    "To announce updates on Twitter"
+  )
+  .option(
+    "--accesstoken <token>",
+    "To announce updates on Twitter"
+  )
+  .option(
+    "--accesstokensecret <secret>",
+  )
 program
   .command("appcheck")
   .description("Check if all apps are up-to-date")
@@ -41,7 +55,8 @@ program
       program.opts().token
         ? (process.env.GITHUB_TOKEN = program.opts().token)
         : await askForToken();
-    console.log(await formatData(program.opts().node, program.opts().plain, program.opts().directory));
+    const opts = program.opts();
+    console.log(await formatData(opts.node, opts.plain, opts.directory, opts.consumerkey, opts.consumersecret, opts.accesstoken, opts.accesstokensecret));
   });
 
 program.parse(process.argv);

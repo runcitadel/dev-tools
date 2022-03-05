@@ -9,6 +9,7 @@ import { existsSync } from "fs";
 import * as path from "path";
 import YAML from "./yaml-tools.js";
 import { AppYmlV1, getUpdateContainers, updateContainer } from "./appYml.js";
+import { TwitterApi } from 'twitter-api-v2';
 
 marked.setOptions({
   renderer: new marked_terminal(),
@@ -118,7 +119,11 @@ const appsInBeta: string[] = ["lightning-terminal"];
 
 export async function getAppUpgrades(
   node: "Umbrel" | "Citadel",
-  directory: undefined | string
+  directory: undefined | string,
+  consumerkey: undefined | string,
+  consumersecret: undefined | string,
+  accesstoken: undefined | string,
+  accesstokensecret: undefined | string
 ): Promise<string> {
   let failedApps: string[] = [];
   const octokitOptions = process.env.GITHUB_TOKEN
@@ -129,6 +134,14 @@ export async function getAppUpgrades(
   let githubRepo: string;
   let githubBranch: string;
   let registryFile: string;
+  let twitter: TwitterApi | false = false;
+  if(consumerkey && consumersecret && accesstoken && accesstokensecret)
+    twitter = new TwitterApi({
+      appKey: consumerkey,
+      appSecret: consumersecret,
+      accessToken: accesstoken,
+      accessSecret: accesstokensecret,
+    });
   switch (node) {
     case "Umbrel":
       githubRepo = "getumbrel/umbrel";
@@ -280,6 +293,7 @@ export async function getAppUpgrades(
       if (appYmlData.yaml.version?.toString() !== "1" && appYmlData.yaml.version?.toString() !== "2") continue;
       console.log(`Updating ${update.app}...`);
       let updateAbleContainers = getUpdateContainers(appYmlData.yaml);
+      let wasUpdated = true;
       appYmlData.yaml.metadata.version = update.current;
       for (let container of updateAbleContainers) {
         let containerIndex = appYmlData.yaml.containers.indexOf(container);
@@ -291,11 +305,14 @@ export async function getAppUpgrades(
         } catch (e) {
           console.error(e);
           appYmlData.yaml.metadata.version = update.citadel;
+          wasUpdated = false;
         }
       }
       // Now write the new app.yml
       await fs.writeFile(appYml, YAML.stringify(appYmlData));
       potentialUpdates.splice(potentialUpdates.indexOf(update), 1);
+      if(wasUpdated && twitter)
+        await twitter.v1.tweet(`I just updated ${update.app} to ${update.current} on Citadel! Press the "Update apps" button on the dashboard to update.`);
     }
   }
   let table = `| app | current release | used in ${node} |\n`;
@@ -312,9 +329,13 @@ export async function getAppUpgrades(
 export async function formatData(
   node: "Umbrel" | "Citadel" | undefined,
   outputPlain: boolean = false,
-  directory: undefined | string
+  directory: undefined | string,
+  consumerkey: undefined | string,
+  consumersecret: undefined | string,
+  accesstoken: undefined | string,
+  accesstokensecret: undefined | string
 ): Promise<string> {
-  const upgrades = await getAppUpgrades(node ? node : "Citadel", directory);
+  const upgrades = await getAppUpgrades(node ? node : "Citadel", directory, consumerkey, consumersecret, accesstoken, accesstokensecret);
   if (outputPlain) {
     return upgrades;
   } else {

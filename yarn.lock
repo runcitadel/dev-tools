@@ -152,6 +152,7 @@ __metadata:
     marked-terminal: ^5.1.1
     node-fetch: ^3.2.0
     semver: ^7.3.5
+    twitter-api-v2: ^1.11.0
     typescript: ^4.5.5
     yaml: ^1.10.2
   bin:
@@ -580,6 +581,13 @@ __metadata:
   version: 0.0.3
   resolution: "tr46@npm:0.0.3"
   checksum: 726321c5eaf41b5002e17ffbd1fb7245999a073e8979085dacd47c4b4e8068ff5777142fc6726d6ca1fd2ff16921b48788b87225cbc57c72636f6efa8efbffe3
+  languageName: node
+  linkType: hard
+
+"twitter-api-v2@npm:^1.11.0":
+  version: 1.11.0
+  resolution: "twitter-api-v2@npm:1.11.0"
+  checksum: c66a7ad074bcdca5e47b41a85a27db03bd2e258e16d124691e73f2540ae69b86496da9454ca48e075d6fc2964fcace78f8ef3e6b8bed17079b957f95c160059f
   languageName: node
   linkType: hard
 
