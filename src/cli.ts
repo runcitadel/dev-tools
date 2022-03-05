@@ -46,6 +46,7 @@ program
   )
   .option(
     "--accesstokensecret <secret>",
+    "To announce updates on Twitter"
   )
 program
   .command("appcheck")
