@@ -280,6 +280,7 @@ export async function getAppUpgrades(
       if (appYmlData.yaml.version?.toString() !== "1" && appYmlData.yaml.version?.toString() !== "2") continue;
       console.log(`Updating ${update.app}...`);
       let updateAbleContainers = getUpdateContainers(appYmlData.yaml);
+      appYmlData.yaml.metadata.version = update.current;
       for (let container of updateAbleContainers) {
         let containerIndex = appYmlData.yaml.containers.indexOf(container);
         try {
@@ -289,9 +290,9 @@ export async function getAppUpgrades(
           );
         } catch (e) {
           console.error(e);
+          appYmlData.yaml.metadata.version = update.citadel;
         }
       }
-      appYmlData.yaml.metadata.version = update.current;
       // Now write the new app.yml
       await fs.writeFile(appYml, YAML.stringify(appYmlData));
       potentialUpdates.splice(potentialUpdates.indexOf(update), 1);
