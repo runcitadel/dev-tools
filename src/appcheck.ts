@@ -300,6 +300,8 @@ export async function getAppUpgrades(
   let table = `| app | current release | used in Citadel |\n`;
   table += "|-----|-----------------|----------------|\n";
   potentialUpdates.forEach((update) => {
+    if(twitter)
+      twitter.v1.tweet(`I failed to update ${update.app} to ${update.current} on Citadel! @AaronDewes Please fix this!`);
     table += `| ${update.app} | ${update.current} | ${update.citadel} |\n`;
   });
   failedApps.forEach(app => {
