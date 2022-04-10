@@ -8,7 +8,7 @@ import * as fs from "fs/promises";
 import { existsSync } from "fs";
 import * as path from "path";
 import YAML from "./yaml-tools.js";
-import { AppYmlV1, getUpdateContainers, updateContainer } from "./appYml.js";
+import { AppYmlV1, AppYmlV3, getUpdateContainers, updateContainer } from "./appYml.js";
 import { TwitterApi } from 'twitter-api-v2';
 
 marked.setOptions({
@@ -118,8 +118,7 @@ interface VersionDiff {
 const appsInBeta: string[] = ["lightning-terminal"];
 
 export async function getAppUpgrades(
-  node: "Umbrel" | "Citadel",
-  directory: undefined | string,
+  directory: string,
   consumerkey: undefined | string,
   consumersecret: undefined | string,
   accesstoken: undefined | string,
@@ -131,9 +130,6 @@ export async function getAppUpgrades(
         auth: process.env.GITHUB_TOKEN,
       }
     : {};
-  let githubRepo: string;
-  let githubBranch: string;
-  let registryFile: string;
   let twitter: TwitterApi | false = false;
   if(consumerkey && consumersecret && accesstoken && accesstokensecret)
     twitter = new TwitterApi({
@@ -142,59 +138,45 @@ export async function getAppUpgrades(
       accessToken: accesstoken,
       accessSecret: accesstokensecret,
     });
-  switch (node) {
-    case "Umbrel":
-      githubRepo = "getumbrel/umbrel";
-      githubBranch = "master";
-      registryFile = "registry.json";
-      break;
-    case "Citadel":
-    default:
-      githubRepo = "runcitadel/compose-nonfree";
-      githubBranch = "main";
-      registryFile = "apps.json";
-      break;
-  }
   const octokit = new Octokit(octokitOptions);
   let data: App[] | SimpleApp[] = [];
-  if (directory)
-    data = JSON.parse(
-      await fs.readFile(path.join(directory, registryFile), "utf8")
-    ) as SimpleApp[];
-  else
-    data = (await (
-      await fetch(
-        `https://raw.githubusercontent.com/${githubRepo}/${githubBranch}/apps/${registryFile}`
-      )
-    ).json()) as App[];
-
+  let apps = await fs.readdir(directory);
   const potentialUpdates: VersionDiff[] = [];
 
-  for (const app of data) {
-    console.info(`Checking app ${app.name}...`);
-    if (!app.repo.startsWith("https://github.com/")) {
+  for (const appName of apps) {
+    console.info(`Checking app ${appName}...`);
+    const appDirectory = path.join(directory, appName);
+    if (!existsSync(appDirectory)) continue;
+    const appYml = path.join(appDirectory, "app.yml");
+    if (!existsSync(appYml)) continue;
+    const appYmlData = YAML.parse(
+      await fs.readFile(appYml, "utf8")
+    ) as YAML & { yaml: AppYmlV1 | AppYmlV3 };
+    if (appYmlData.yaml.version?.toString() !== "1" && appYmlData.yaml.version?.toString() !== "2" && appYmlData.yaml.version?.toString() !== "3") continue;
+    const app = appYmlData.yaml.metadata;
+    if (typeof appYmlData.yaml.metadata.repo !== "string" || !appYmlData.yaml.metadata.repo?.startsWith("https://github.com/")) {
       console.info("Version checking is not supported/disabled for this app.");
       failedApps.push(app.name);
       continue;
     }
-    const { owner, repo } = getOwnerAndRepo(app.repo);
+    const { owner, repo } = getOwnerAndRepo(app.repo as string);
     if(!repo || !owner) {
       console.info("Version checking is not supported/disabled for this app.");
       failedApps.push(app.name);
       continue;
     }
     const appVersion = app.version;
-    if (app.id === "lnbits") {
-      const currentCommit = await checkCommits(app.repo, octokit);
+    if (appName === "lnbits") {
+      const currentCommit = await checkCommits(app.repo as string, octokit);
       if (currentCommit !== app.version) {
         potentialUpdates.push({
           citadel: appVersion,
           current: currentCommit,
           app: app.name,
-          id: app.id,
+          id: appName,
         });
       }
-    } else if (app.id === "photoprism") {
+    } else if (appName === "photoprism") {
       const tagList = await octokit.rest.repos.listTags({
         owner,
         repo,
@@ -213,10 +195,10 @@ export async function getAppUpgrades(
           citadel: appVersion,
           current: sortedTags[sortedTags.length - 1].name,
           app: app.name,
-          id: app.id,
+          id: appName,
         });
       }
-    } else if (app.id === "home-assistant" || app.id === "pi-hole") {
+    } else if (appName === "home-assistant" || appName === "pi-hole") {
       const homeAssistantVersion = await checkHomeAssistant(
         octokit,
         owner,
@@ -225,7 +207,7 @@ export async function getAppUpgrades(
         app.name
       );
       if (homeAssistantVersion) {
-        potentialUpdates.push({ ...homeAssistantVersion, id: app.id });
+        potentialUpdates.push({ ...homeAssistantVersion, id: appName });
       }
     } else {
       if (!semver.valid(app.version)) {
@@ -234,7 +216,7 @@ export async function getAppUpgrades(
           citadel: appVersion,
           current: "Check failed.",
           app: app.name,
-          id: app.id,
+          id: appName,
         });
         continue;
       }
@@ -246,7 +228,7 @@ export async function getAppUpgrades(
       // Also remove all tags that contain a "-" and then letters at the end.
       const sortedTags = tagList.data
         .filter((tag) => {
-          return appsInBeta.includes(app.id) || !isPrerelease(tag.name);
+          return appsInBeta.includes(appName) || !isPrerelease(tag.name);
         })
         .filter((tag) => {
           return isValidSemver(tag.name);
@@ -258,7 +240,7 @@ export async function getAppUpgrades(
           );
         });
       if(sortedTags.length == 0) {
-        failedApps.push(app.id);
+        failedApps.push(appName);
         continue;
       }
       // Now compare the tag with the highest semver against the currently used version
@@ -272,7 +254,7 @@ export async function getAppUpgrades(
           citadel: appVersion.replace("v", ""),
           current: sortedTags[sortedTags.length - 1].name.replace("v", ""),
           app: app.name,
-          id: app.id,
+          id: appName,
         });
       }
     }
@@ -280,7 +262,6 @@ export async function getAppUpgrades(
   if (potentialUpdates == []) {
     return "No updates were found, everything seems up-to-date.";
   }
-  if (directory) {
     let appsDirectory = directory;
     for (let update of potentialUpdates) {
       const appDirectory = path.join(appsDirectory, update.id);
@@ -289,14 +270,14 @@ export async function getAppUpgrades(
       if (!existsSync(appYml)) continue;
       const appYmlData = YAML.parse(
         await fs.readFile(appYml, "utf8")
-      ) as YAML & { yaml: AppYmlV1 };
+      ) as YAML & { yaml: AppYmlV1 | AppYmlV3 };
       if (appYmlData.yaml.version?.toString() !== "1" && appYmlData.yaml.version?.toString() !== "2") continue;
       console.log(`Updating ${update.app}...`);
       let updateAbleContainers = getUpdateContainers(appYmlData.yaml);
       let wasUpdated = true;
       appYmlData.yaml.metadata.version = update.current;
       for (let container of updateAbleContainers) {
-        let containerIndex = appYmlData.yaml.containers.indexOf(container);
+        let containerIndex = appYmlData.yaml.containers.indexOf(container as any);
         try {
           appYmlData.yaml.containers[containerIndex] = await updateContainer(
             container,
@@ -314,8 +295,7 @@ export async function getAppUpgrades(
       if(wasUpdated && twitter)
         await twitter.v1.tweet(`I just updated ${update.app} to ${update.current} on Citadel! Press the "Update apps" button on the dashboard to update.`);
     }
-  }
-  let table = `| app | current release | used in ${node} |\n`;
+  let table = `| app | current release | used in Citadel |\n`;
   table += "|-----|-----------------|----------------|\n";
   potentialUpdates.forEach((update) => {
     table += `| ${update.app} | ${update.current} | ${update.citadel} |\n`;
@@ -327,15 +307,14 @@ export async function getAppUpgrades(
 }
 
 export async function formatData(
-  node: "Umbrel" | "Citadel" | undefined,
   outputPlain: boolean = false,
-  directory: undefined | string,
+  directory: string,
   consumerkey: undefined | string,
   consumersecret: undefined | string,
   accesstoken: undefined | string,
   accesstokensecret: undefined | string
 ): Promise<string> {
-  const upgrades = await getAppUpgrades(node ? node : "Citadel", directory, consumerkey, consumersecret, accesstoken, accesstokensecret);
+  const upgrades = await getAppUpgrades(directory, consumerkey, consumersecret, accesstoken, accesstokensecret);
   if (outputPlain) {
     return upgrades;
   } else {

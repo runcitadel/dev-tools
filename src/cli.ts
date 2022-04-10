@@ -25,12 +25,8 @@ program
   .option("-t, --token <token>", "GitHub access token")
   .option("-p, --plain", "Specify this if you don't want markdown output to be formatted")
   .option(
-    "-n, --node <node>",
-    "'Umbrel' or 'Citadel', depending on what public repo you want to check."
-  )
-  .option(
     "-d --directory <node>",
-    "When using Citadel, put the path of a local Citadel app directory here to automatically update."
+    "The path of a local Citadel app directory here to automatically update."
   )
   .option(
     "--consumerkey <key>",
@@ -57,7 +53,7 @@ program
         ? (process.env.GITHUB_TOKEN = program.opts().token)
         : await askForToken();
     const opts = program.opts();
-    console.log(await formatData(opts.node, opts.plain, opts.directory, opts.consumerkey, opts.consumersecret, opts.accesstoken, opts.accesstokensecret));
+    console.log(await formatData(opts.plain, opts.directory, opts.consumerkey, opts.consumersecret, opts.accesstoken, opts.accesstokensecret));
   });
 
 program.parse(process.argv);
