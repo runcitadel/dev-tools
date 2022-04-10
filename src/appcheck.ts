@@ -127,11 +127,11 @@ export async function getAppUpgrades(
   let failedApps: string[] = [];
   const octokitOptions = process.env.GITHUB_TOKEN
     ? {
-        auth: process.env.GITHUB_TOKEN,
-      }
+      auth: process.env.GITHUB_TOKEN,
+    }
     : {};
   let twitter: TwitterApi | false = false;
-  if(consumerkey && consumersecret && accesstoken && accesstokensecret)
+  if (consumerkey && consumersecret && accesstoken && accesstokensecret)
     twitter = new TwitterApi({
       appKey: consumerkey,
       appSecret: consumersecret,
@@ -160,7 +160,7 @@ export async function getAppUpgrades(
       continue;
     }
     const { owner, repo } = getOwnerAndRepo(app.repo as string);
-    if(!repo || !owner) {
+    if (!repo || !owner) {
       console.info("Version checking is not supported/disabled for this app.");
       failedApps.push(app.name);
       continue;
@@ -239,7 +239,7 @@ export async function getAppUpgrades(
             b.name.replace("v", "")
           );
         });
-      if(sortedTags.length == 0) {
+      if (sortedTags.length == 0) {
         failedApps.push(appName);
         continue;
       }
@@ -262,45 +262,51 @@ export async function getAppUpgrades(
   if (potentialUpdates == []) {
     return "No updates were found, everything seems up-to-date.";
   }
-    let appsDirectory = directory;
-    for (let update of potentialUpdates) {
-      const appDirectory = path.join(appsDirectory, update.id);
-      if (!existsSync(appDirectory)) continue;
-      const appYml = path.join(appDirectory, "app.yml");
-      if (!existsSync(appYml)) continue;
-      const appYmlData = YAML.parse(
-        await fs.readFile(appYml, "utf8")
-      ) as YAML & { yaml: AppYmlV1 | AppYmlV3 };
-      if (appYmlData.yaml.version?.toString() !== "1" && appYmlData.yaml.version?.toString() !== "2") continue;
-      console.log(`Updating ${update.app}...`);
-      let updateAbleContainers = getUpdateContainers(appYmlData.yaml);
-      let wasUpdated = true;
-      appYmlData.yaml.metadata.version = update.current;
-      for (let container of updateAbleContainers) {
-        let containerIndex = appYmlData.yaml.containers.indexOf(container as any);
-        try {
-          appYmlData.yaml.containers[containerIndex] = await updateContainer(
-            container,
-            update.id === "gitea" ? `${update.current}-rootless` : update.current
-          );
-        } catch (e) {
-          console.error(e);
-          appYmlData.yaml.metadata.version = update.citadel;
-          wasUpdated = false;
-        }
-      }
-      // Now write the new app.yml
-      await fs.writeFile(appYml, YAML.stringify(appYmlData));
-      potentialUpdates.splice(potentialUpdates.indexOf(update), 1);
-      if(wasUpdated && twitter)
-        await twitter.v1.tweet(`I just updated ${update.app} to ${update.current} on Citadel! Press the "Update apps" button on the dashboard to update.`);
-      else if(twitter)
-        await twitter.v1.tweet(`I failed to update ${update.app} to ${update.current} on Citadel! @AaronDewes Please fix this!`);
+  let appsDirectory = directory;
+  for (const update of potentialUpdates) {
+    const appDirectory = path.join(appsDirectory, update.id);
+    if (!existsSync(appDirectory)) {
+      console.warn(`Failed to locate app directory for ${update.id}`)
+      continue;
     }
+    const appYml = path.join(appDirectory, "app.yml");
+    if (!existsSync(appYml)) {
+      console.warn(`Failed to locate app.yml for ${update.id}`)
+      continue;
+    }
+    const appYmlData = YAML.parse(
+      await fs.readFile(appYml, "utf8")
+    ) as YAML & { yaml: AppYmlV1 | AppYmlV3 };
+    if (appYmlData.yaml.version?.toString() !== "1" && appYmlData.yaml.version?.toString() !== "2"  && appYmlData.yaml.version?.toString() !== "3") continue;
+    console.log(`Updating ${update.app}...`);
+    let updateAbleContainers = getUpdateContainers(appYmlData.yaml);
+    let wasUpdated = true;
+    appYmlData.yaml.metadata.version = update.current;
+    for (let container of updateAbleContainers) {
+      let containerIndex = appYmlData.yaml.containers.indexOf(container as any);
+      try {
+        appYmlData.yaml.containers[containerIndex] = await updateContainer(
+          container,
+          update.id === "gitea" ? `${update.current}-rootless` : update.current
+        );
+      } catch (e) {
+        console.error(e);
+        appYmlData.yaml.metadata.version = update.citadel;
+        wasUpdated = false;
+      }
+    }
+    // Now write the new app.yml
+    await fs.writeFile(appYml, YAML.stringify(appYmlData));
+    potentialUpdates.splice(potentialUpdates.indexOf(update), 1);
+    if (wasUpdated && twitter)
+      await twitter.v1.tweet(`I just updated ${update.app} to ${update.current} on Citadel! Press the "Update apps" button on the dashboard to update.`);
+    else if (twitter)
+      await twitter.v1.tweet(`I failed to update ${update.app} to ${update.current} on Citadel! @AaronDewes Please fix this!`);
+  }
   let table = `| app | current release | used in Citadel |\n`;
   table += "|-----|-----------------|----------------|\n";
   potentialUpdates.forEach((update) => {
-    if(twitter)
+    if (twitter)
       twitter.v1.tweet(`I failed to update ${update.app} to ${update.current} on Citadel! @AaronDewes Please fix this!`);
     table += `| ${update.app} | ${update.current} | ${update.citadel} |\n`;
   });
