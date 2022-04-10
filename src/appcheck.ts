@@ -301,13 +301,17 @@ export async function getAppUpgrades(
     if (wasUpdated && twitter)
       await twitter.v1.tweet(`I just updated ${update.app} to ${update.current} on Citadel! Press the "Update apps" button on the dashboard to update.`);
     else if (twitter)
-      await twitter.v1.tweet(`I failed to update ${update.app} to ${update.current} on Citadel! @AaronDewes Please fix this!`);
+      await twitter.v1.tweet(`I failed to update ${update.app} to ${update.current} on Citadel! @AaronDewes Please fix this!`).catch(() => {
+        // Ignore, this happens when tweeting the same thing twice
+      });
   }
   let table = `| app | current release | used in Citadel |\n`;
   table += "|-----|-----------------|----------------|\n";
   potentialUpdates.forEach((update) => {
     if (twitter)
-      twitter.v1.tweet(`I failed to update ${update.app} to ${update.current} on Citadel! @AaronDewes Please fix this!`);
+      twitter.v1.tweet(`I failed to update ${update.app} to ${update.current} on Citadel! @AaronDewes Please fix this!`).catch(() => {
+        // Ignore, this happens when tweeting the same thing twice
+      });
     table += `| ${update.app} | ${update.current} | ${update.citadel} |\n`;
   });
   failedApps.forEach(app => {
