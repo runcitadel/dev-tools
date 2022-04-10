@@ -281,7 +281,7 @@ export async function getAppUpgrades(
         try {
           appYmlData.yaml.containers[containerIndex] = await updateContainer(
             container,
-            update.current
+            update.id === "gitea" ? `${update.current}-rootless` : update.current
           );
         } catch (e) {
           console.error(e);
@@ -294,6 +294,8 @@ export async function getAppUpgrades(
       potentialUpdates.splice(potentialUpdates.indexOf(update), 1);
       if(wasUpdated && twitter)
         await twitter.v1.tweet(`I just updated ${update.app} to ${update.current} on Citadel! Press the "Update apps" button on the dashboard to update.`);
+      else if(twitter)
+        await twitter.v1.tweet(`I failed to update ${update.app} to ${update.current} on Citadel! @AaronDewes Please fix this!`);
     }
   let table = `| app | current release | used in Citadel |\n`;
   table += "|-----|-----------------|----------------|\n";
