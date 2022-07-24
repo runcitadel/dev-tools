@@ -198,6 +198,9 @@ export async function getAppUpgrades(
           id: appName,
         });
       }
+    } else if (appName === "synapse") {
+      // TEMP: disable automatic updates until app.yml v4 is out
+      continue
     } else if (appName === "home-assistant" || appName === "pi-hole") {
       const homeAssistantVersion = await checkHomeAssistant(
         octokit,
