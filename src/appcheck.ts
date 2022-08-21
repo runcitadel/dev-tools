@@ -1,4 +1,3 @@
-import fetch from "node-fetch";
 import semver from "semver";
 import { Octokit } from "@octokit/rest";
 import { marked } from "marked";
