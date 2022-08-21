@@ -19,6 +19,6 @@ export default class Yaml {
     }
 
     static stringify(yaml: Yaml | unknown): string {
-        return yaml instanceof Yaml ? yaml.toString() : YAML.stringify(yaml);
+        return yaml instanceof Yaml ? yaml.toString() : YAML.stringify(yaml, { version: "1.1" });
     }
 }
