@@ -2,7 +2,7 @@
   "name": "@runcitadel/dev-tools",
   "description": "Tools used for making development of Citadel and Umbrel easier",
   "version": "0.0.1",
-  "packageManager": "yarn@3.2.2",
+  "packageManager": "yarn@3.2.3",
   "dependencies": {
     "@octokit/rest": "^19.0.4",
     "commander": "^9.4.0",
